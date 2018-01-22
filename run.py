@@ -11,7 +11,7 @@ COMMANDS = ['CONNECT', 'FUNDCHANNEL', 'PAY', 'CLOSE']
 class LightningWrapper(LightningRpc):
     """API for Lightning RPC client
     """
-    def getinfo(self):
+    def getinfo_(self):
         info = self.getinfo()
         node_id = info['id']
         node_address = info['address'][0]['address']
@@ -29,15 +29,16 @@ class LightningWrapper(LightningRpc):
 
 
 if __name__ == "__main__":
-    ln_path = os.environ['LN_PATH'] or os.path.join(os.environ['HOME'], '.lightning')
+    ln_path = os.getenv('LN_PATH') or os.path.join(os.getenv('HOME'), '.lightning')
     rpc_path = os.path.join(ln_path, '/lightning-rpc')
+    logging.info(rpc_path)
 
     ln = LightningWrapper(LightningRpc(rpc_path))
     bot = TwitterAPI(cfg.twitter['consumer_key'], cfg.twitter['consumer_secret'], 
         cfg.twitter['access_token'], cfg.twitter['access_token_secret'])
 
     # Get info about Lightning node
-    info = ln.getinfo()
+    info = ln.getinfo_()
     logging.info(info)
 
     # Get info about twitter account
