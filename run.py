@@ -28,9 +28,11 @@ class LightningWrapper(LightningRpc):
         self.fundchannel(node_id, satoshis)
 
 
-if __name__ == "__main__":
+def main():
+    logging.basicConfig(level=logging.INFO)
+
     ln_path = os.getenv('LN_PATH') or os.path.join(os.getenv('HOME'), '.lightning')
-    rpc_path = os.path.join(ln_path, '/lightning-rpc')
+    rpc_path = os.path.join(ln_path, 'lightning-rpc')
     logging.info(rpc_path)
 
     ln = LightningWrapper(LightningRpc(rpc_path))
@@ -53,3 +55,6 @@ if __name__ == "__main__":
     for m in msgs:
         tweet = m.get('text')
         logging.debug(tweet)
+
+if __name__ == "__main__":
+    main()
