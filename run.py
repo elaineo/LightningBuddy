@@ -28,7 +28,7 @@ class LightningWrapper(LightningRpc):
         self.fundchannel(node_id, satoshis)
 
 
-def main():
+if __name__ == "__main__":
     ln_path = os.environ['LN_PATH'] or os.path.join(os.environ['HOME'], '.lightning')
     rpc_path = os.path.join(ln_path, '/lightning-rpc')
 
