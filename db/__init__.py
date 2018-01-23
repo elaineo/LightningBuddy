@@ -3,6 +3,7 @@ import logging
 import os
 
 from db.peers import Peers
+from db.commands import Commands
 
 class LightningDB:
     """DB-dependent wrapper around SQLite3.
@@ -18,10 +19,11 @@ class LightningDB:
 
         rv = self.execute([
             "SELECT name FROM sqlite_master"
-            "   WHERE type='table' AND name IN ('peers')"]
+            "   WHERE type='table' AND name IN ('peers', 'commands')"]
         ).fetchone()
 
         self.peers = Peers(self)
+        self.commands = Commands(self)
 
         if rv is None:
             self.execute("PRAGMA user_version = %i" % LightningDB.MAX_VERSION)
@@ -35,6 +37,15 @@ class LightningDB:
             '    WHEN NEW.updated < OLD.updated',
             'BEGIN',
             '    UPDATE peers SET updated=(STRFTIME("%s","now")) WHERE uid=NEW.uid;',
+            'END'])
+
+        self.execute([
+            'CREATE TRIGGER IF NOT EXISTS update_commands_timestamp',
+            '    AFTER UPDATE ON commands',
+            '    FOR EACH ROW',
+            '    WHEN NEW.updated < OLD.updated',
+            'BEGIN',
+            '    UPDATE commands SET updated=(STRFTIME("%s","now")) WHERE sid=NEW.sid;',
             'END'])
 
     def execute(self, sql, args=()):
