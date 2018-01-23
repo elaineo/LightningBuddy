@@ -19,7 +19,7 @@ class Peers:
             'CREATE TABLE IF NOT EXISTS peers (',
             '    uid INTEGER PRIMARY KEY, screen_name VARCHAR UNIQUE, bot_uid VARCHAR,'
             '    bot_name VARCHAR, pubkey VARCHAR, ip_addr VARCHAR, port INTEGER,'
-            '    updated DATETIME DEFAULT (STRFTIME("%s","now")) NOT NULL);'])
+            '    updated DATETIME DEFAULT (STRFTIME(\'%s\',\'now\')) NOT NULL);'])
 
     def new(self, uid, screen_name):
         """

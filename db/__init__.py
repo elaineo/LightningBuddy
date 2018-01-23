@@ -28,6 +28,15 @@ class LightningDB:
         else:
             self.migrate(to=LightningDB.MAX_VERSION)
 
+        self.execute([
+            'CREATE TRIGGER IF NOT EXISTS update_peers_timestamp',
+            '    AFTER UPDATE ON peers',
+            '    FOR EACH ROW',
+            '    WHEN NEW.updated < OLD.updated',
+            'BEGIN',
+            '    UPDATE peers SET updated=(STRFTIME("%s","now")) WHERE uid=NEW.uid;',
+            'END'])
+
     def execute(self, sql, args=()):
 
         if isinstance(sql, (list, tuple)):
