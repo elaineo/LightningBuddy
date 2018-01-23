@@ -1,22 +1,25 @@
 
 
 class Peers:
-    """Table of owner's peers. Schema overview:
-        | uid         | screen_name | node_id | ip_addr       | port | channel_id   | connected |
-        +-------------+-------------+---------+---------------+------+--------------+-----------|
-        | 66266839447 | lightning   | 02a82...| 24.212.242.60 | 9735 | 1259839:32:1 | 1         |
-        +-------------+-------------+---------+---------------+------+--------------+-----------|
+    """Table of owner's peers. Owner is presumably human. Bots can be shared, as can nodes (for now). 
+
+       Schema overview:
+        | uid (owner) | screen_name | bot_uid   | bot_name | pubkey  | ip_addr       | port | updated |
+        +-------------+-------------+-----------+----------+---------+---------------+------+---------|
+        | 66266839447 | lightning   | 214123433 | lnb0t    | 02a82...| 24.212.242.60 | 9735 |         |
+        +-------------+-------------+-----------+----------+---------+---------------+------+---------|
     """
 
-    fields = ['uid', 'screen_name', 'node_id', 'ip_addr', 'port', 'channel_id', 'connected']
+    fields = ['uid', 'screen_name', 'bot_uid', 'bot_name', 'pubkey', 'ip_addr', 'port', 'updated']
 
     def __init__(self, db):
 
         self.db = db
         self.db.execute([
             'CREATE TABLE IF NOT EXISTS peers (',
-            '    uid INTEGER PRIMARY KEY, screen_name VARCHAR UNIQUE, node_id VARCHAR, ip_addr VARCHAR,',
-            '    port INTEGER, channel_id VARCHAR UNIQUE, connected INTEGER DEFAULT 0);'])
+            '    uid INTEGER PRIMARY KEY, screen_name VARCHAR UNIQUE, bot_uid VARCHAR,'
+            '    bot_name VARCHAR, pubkey VARCHAR, ip_addr VARCHAR, port INTEGER,'
+            '    updated DATETIME DEFAULT (STRFTIME("%s","now")) NOT NULL);'])
 
     def new(self, uid, screen_name):
         """
@@ -29,15 +32,28 @@ class Peers:
                 ( uid, screen_name )
             )
 
-    def add_node(self, uid, screen_name, node_id=None, ip_addr=None, port=None):
+    def add_bot(self, uid, bot_uid, bot_name):
+        """
+        Add bot to Twitter friend
+        """
+        self.db.execute([
+            'INSERT OR REPLACE INTO peers (',
+            '    uid, bot_uid, bot_name )', 
+            '    VALUES (?, ?, ?)'],  
+                ( uid, bot_uid, bot_name )
+            )
+
+        return self.get_by_uid(uid)
+
+    def add_node(self, uid, screen_name, pubkey=None, ip_addr=None, port=None):
         """
         Add new Twitter friend with node
         """
         self.db.execute([
             'INSERT OR REPLACE INTO peers (',
-            '    uid, screen_name, node_id, ip_addr, port )', 
+            '    uid, screen_name, pubkey, ip_addr, port )', 
             '    VALUES (?, ?, ?, ?, ?)'],  
-                ( uid, screen_name, node_id, ip_addr, port )
+                ( uid, screen_name, pubkey, ip_addr, port )
             )
 
         return self.get_by_uid(uid)
@@ -62,12 +78,22 @@ class Peers:
 
         return None
 
-    def set_node(self, uid, node_id, ip_addr, port=None):
+    def get_by_bot(self, bot_uid):
+        """
+        Find twitter peer by bot
+        """
+        rv = self.db.execute('SELECT * FROM peers WHERE bot_uid=?', (bot_uid, )).fetchone()
+        if rv:
+            return dict(zip(Peers.fields, rv))
+
+        return None        
+
+    def set_node(self, uid, pubkey, ip_addr, port=None):
         """
         Add a node to twitter peer and return full mapping of keys, values
         """
         self.db.execute(
-            'UPDATE peers SET node_id = ? , ip_addr = ?, port = ? WHERE uid = ?',
-            (node_id, ip_addr, port, uid))
+            'UPDATE peers SET pubkey = ? , ip_addr = ?, port = ? WHERE uid = ?',
+            (pubkey, ip_addr, port, uid))
 
         return self.get_by_uid(uid)
