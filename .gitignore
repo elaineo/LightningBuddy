@@ -102,3 +102,6 @@ ENV/
 
 # config
 config.py
+
+# sqlite
+sqlite.db
