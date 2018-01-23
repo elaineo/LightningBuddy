@@ -18,17 +18,29 @@ class Peers:
             '    uid INTEGER PRIMARY KEY, screen_name VARCHAR UNIQUE, node_id VARCHAR, ip_addr VARCHAR,',
             '    port INTEGER, channel_id VARCHAR UNIQUE, connected INTEGER DEFAULT 0);'])
 
-    def add(self, p):
+    def new(self, uid, screen_name):
         """
-        Add new peer to DB and return a mapping of fields and values
+        Add new Twitter friend
         """
-        self.db.execute(
-            'INSERT INTO peers (',
-            '    uid, screen_name, node_id, ip_addr, port, channel_id, connected )', 
-            '    VALUES (?, ?, ?, ?, ?, ?, ?)', ( 
-                p["uid"], p["screen_name"], p["node_id"], p["ip_addr"], p["port"], 
-                p["channel_id"], p["connected"])
+        self.db.execute([
+            'INSERT OR REPLACE INTO peers (',
+            '    uid, screen_name )', 
+            '    VALUES (?, ?)'],  
+                ( uid, screen_name )
             )
+
+    def add_node(self, uid, screen_name, node_id=None, ip_addr=None, port=None):
+        """
+        Add new Twitter friend with node
+        """
+        self.db.execute([
+            'INSERT OR REPLACE INTO peers (',
+            '    uid, screen_name, node_id, ip_addr, port )', 
+            '    VALUES (?, ?, ?, ?, ?)'],  
+                ( uid, screen_name, node_id, ip_addr, port )
+            )
+
+        return self.get_by_uid(uid)
 
     def get_by_uid(self, uid):
         """
@@ -36,24 +48,26 @@ class Peers:
         """
         rv = self.db.execute('SELECT * FROM peers WHERE uid=?', (uid, )).fetchone()
         if rv:
-            return rv[0]
+            return dict(zip(Peers.fields, rv))
 
         return None
 
     def get_by_name(self, name):
         """
-        Find twitter peer by uid
+        Find twitter peer by name
         """
         rv = self.db.execute('SELECT * FROM peers WHERE screen_name=?', (name, )).fetchone()
         if rv:
-            return rv[0]
+            return dict(zip(Peers.fields, rv))
 
         return None
 
-    def set_node(self, uid, node):
+    def set_node(self, uid, node_id, ip_addr, port=None):
         """
-        Add a node to twitter peer
+        Add a node to twitter peer and return full mapping of keys, values
         """
         self.db.execute(
             'UPDATE peers SET node_id = ? , ip_addr = ?, port = ? WHERE uid = ?',
-            (node["id"], node["ip"], node["port"], uid))
+            (node_id, ip_addr, port, uid))
+
+        return self.get_by_uid(uid)

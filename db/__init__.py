@@ -2,7 +2,7 @@ import sqlite3
 import logging
 import os
 
-from peers import Peers
+from db.peers import Peers
 
 class LightningDB:
     """DB-dependent wrapper around SQLite3.
@@ -12,13 +12,12 @@ class LightningDB:
 
     MAX_VERSION = 1
 
-    def __init__(self, path, conf):
+    def __init__(self, path):
 
         self.path = os.path.expanduser(path)
-        self.conf = conf
 
         rv = self.execute([
-            "SELECT name FROM sqlite"
+            "SELECT name FROM sqlite_master"
             "   WHERE type='table' AND name IN ('peers')"]
         ).fetchone()
 
@@ -28,13 +27,6 @@ class LightningDB:
             self.execute("PRAGMA user_version = %i" % LightningDB.MAX_VERSION)
         else:
             self.migrate(to=LightningDB.MAX_VERSION)
-
-        self.execute([
-            'CREATE TRIGGER IF NOT EXISTS remove_stale_threads',
-            'AFTER DELETE ON comments',
-            'BEGIN',
-            '    DELETE FROM threads WHERE id NOT IN (SELECT tid FROM comments);',
-            'END'])
 
     def execute(self, sql, args=()):
 
