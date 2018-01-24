@@ -5,19 +5,41 @@ class Commands:
        sid refers to Twitter Status ID
 
        Schema overview:
-        | sid         | creator_uid | owner_uid | bot_uid   | command  | last_sid  | status  | updated |
-        +-------------+-------------+-----------+-----------+----------+-----------+---------+---------|
-        | 66266839447 | 738123385   | 738123385 | 873303322 | CONNECT  | 955702923 |         |         |
-        +-------------+-------------+-----------+-----------+----------+-----------+---------+---------|
+        | sid         |  command | creator_uid | peer_uid  | bot_uid   | last_sid  | status  | updated |
+        +-------------+----------+-------------+-----------+-----------+-----------+---------+---------|
+        | 66266839447 | CONNECT  | 738123385   | 738123385 | 873303322 | 955702923 |         |         |
+        +-------------+----------+-------------+-----------+-----------+-----------+---------+---------|
     """
 
-    fields = ['sid', 'creator_uid', 'owner_uid', 'bot_uid', 'command', 'last_sid', 'status', 'updated']
+    fields = ['sid', 'command', 'creator_uid', 'peer_uid', 'bot_uid', 'last_sid', 'status', 'updated']
 
     def __init__(self, db):
 
         self.db = db
         self.db.execute([
             'CREATE TABLE IF NOT EXISTS commands (',
-            '    sid INTEGER PRIMARY KEY, creator_uid INTEGER, owner_uid INTEGER,'
-            '    bot_uid INTEGER, command VARCHAR, last_sid INTEGER UNIQUE, status VARCHAR,'
-            '    updated DATETIME DEFAULT (STRFTIME(\'%s\',\'now\')) NOT NULL);'])    
+            '    sid INTEGER PRIMARY KEY, command VARCHAR,'
+            '    creator_uid INTEGER, peer_uid INTEGER, bot_uid INTEGER,'
+            '    last_sid INTEGER UNIQUE, status VARCHAR DEFAULT \'new\','
+            '    updated DATETIME DEFAULT (STRFTIME(\'%s\',\'now\')) NOT NULL);'])
+
+    def new(self, sid, command, creator_uid, peer_uid=None, bot_uid=None):
+        """
+        Add newly received command
+        """
+        self.db.execute([
+            'INSERT OR REPLACE INTO commands (',
+            '    sid, command, creator_uid, peer_uid, bot_uid, last_sid )', 
+            '    VALUES (?, ?, ?, ?, ?, ?)'],  
+                ( sid, command, creator_uid, peer_uid, bot_uid, sid )
+            )
+
+    def update_status(self, last_sid, new_sid, status):
+        """
+        Update command status based on sid
+        """
+        self.db.execute(
+            'UPDATE commands SET last_sid = ? , status = ? WHERE last_sid = ?',
+            (new_sid, status, last_sid))
+
+        return self.get_by_last_sid(new_sid)
