@@ -34,9 +34,29 @@ class Commands:
                 ( sid, command, creator_uid, peer_uid, bot_uid, sid )
             )
 
+    def get_by_sid(self, sid):
+        """
+        Find command by originating status ID
+        """
+        rv = self.db.execute('SELECT * FROM commands WHERE sid=?', (sid, )).fetchone()
+        if rv:
+            return dict(zip(Commands.fields, rv))
+
+        return None       
+
+    def get_by_last_sid(self, sid):
+        """
+        Find command by most recent status ID 
+        """
+        rv = self.db.execute('SELECT * FROM commands WHERE last_sid=?', (sid, )).fetchone()
+        if rv:
+            return dict(zip(Commands.fields, rv))
+
+        return None       
+
     def update_status(self, last_sid, new_sid, status):
         """
-        Update command status based on sid
+        Update command status based on status ID
         """
         self.db.execute(
             'UPDATE commands SET last_sid = ? , status = ? WHERE last_sid = ?',
