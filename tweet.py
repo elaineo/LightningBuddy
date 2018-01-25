@@ -6,10 +6,11 @@ HUMAN_COMMANDS = ['CONNECT', 'GIVE', 'FUNDCHANNEL']
 BOT_COMMANDS = ['GETINFO', 'GETINVOICE']
 
 class TweetClient:
-    def __init__(self, config, db, owner):
+    def __init__(self, config, db, owner, lnrpc):
         self.api = TwitterAPI(config['consumer_key'], config['consumer_secret'], 
             config['access_token'], config['access_token_secret'])
         self.db = db
+        self.lnrpc = lnrpc
 
         bot_id = config['access_token'].split('-')[0]
         bot_raw = self.api.request('users/lookup', {'user_id': bot_id})
@@ -25,6 +26,11 @@ class TweetClient:
     def _post(self, msg, reply_sid):
         tweet = self.api.request('statuses/update', {'status': msg, 'in_reply_to_status_id': reply_sid })
         return tweet.get('id_str')
+
+    def _request_bot(self, command):
+        reply_to = "@%s" % command.get('screen_name')
+        msg = reply_to + " Please introduce me to your bot."
+        return self._post(msg, command.get('last_sid'))
 
     def _filter(self, tweet):
         """ Filter for new instructions from human owner or other bots
@@ -70,10 +76,6 @@ class TweetClient:
 
         return full.update(peer_db)
 
-    def _execute_bot_response(self, command, args):
-        logging.info(command)
-        logging.info(args)
-
     def _execute_human_response(self, command, args):
         logging.info(command)
         logging.info(args)
@@ -81,7 +83,8 @@ class TweetClient:
         
         # check for associated bot
         if not command.get('bot_uid'):
-            self._request_bot(command)
+            sid = self._request_bot(command)
+            return self.db.commands.update_status(command.get('sid'), sid, 'bot-req')
         else: 
             reply_to = '@%s ' % command.get('bot_name')
 
@@ -91,6 +94,19 @@ class TweetClient:
                 msg = '%s GETINVOICE %d' % (reply_to, args)
             sid = self._post(msg, command.get('last_sid'))
             # update status
+            return self.db.commands.update_status(command.get('sid'), sid, 'data-req')
+
+    def _execute_bot_response(self, command, args):
+        logging.info(command)
+        logging.info(args)
+
+        if command == "GETINFO":
+            msg = self.lnrpc.get_uri()
+        elif command == "GETINVOICE":
+            msg = self.lnrpc.get_uri(args)
+        sid = self._post(msg, command.get('last_sid'))
+        # update status
+        return self.db.commands.update_status(command.get('sid'), sid, 'complete')
 
     def _resume_command(self, tweet, command):
         """ Continue executing an existing command
@@ -106,13 +122,17 @@ class TweetClient:
         msgs = self.api.request('statuses/filter', { 'track': self.bot.get('screen_name') })
 
         for m in msgs:
-            tweet = m.get('text')
             logging.info(m)
-            if m.get('in_reply_to_status_id'):
-                response = self._resume_command(m)
+            last_sid = m.get('in_reply_to_status_id')
+            if last_sid:
+                command = self.db.commands.get_by_last_sid(last_sid)
+                if not command:
+                    continue
+                response = self._resume_command(command, m)
                 # Look up command
                 # Respond to command
             else:
+                tweet = m.get('text')
                 sid = m.get('id_str')
                 creator = m.get('user')
                 command, peer, bot = self._filter(m)
