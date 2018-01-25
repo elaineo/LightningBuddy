@@ -17,14 +17,16 @@ class TweetClient:
         owner_raw = self.api.request('users/lookup', {'screen_name': owner})
 
         try:
-            self.bot = json.loads(bot_raw.response.text)[0]
-            self.owner = json.loads(owner_raw.response.text)[0]
+            self.bot = bot_raw.json()[0]
+            logging.debug(self.bot)
+            self.owner = owner_raw.json()[0]
+            logging.debug(self.owner)
         except KeyError:
             print("Cannot access Twitter account. Check API keys.")
             raise 
 
     def _post(self, msg, reply_sid):
-        tweet = self.api.request('statuses/update', {'status': msg, 'in_reply_to_status_id': reply_sid })
+        tweet = self.api.request('statuses/update', {'status': msg, 'in_reply_to_status_id': reply_sid }).json()
         return tweet.get('id_str')
 
     def _request_bot(self, command):
@@ -61,7 +63,7 @@ class TweetClient:
 
         return None, None, None
 
-    def _record_new_command(self, sid, creator, command, peer, bot):
+    def _record_new_command(self, command, sid, creator, peer, bot):
         assert bot or peer, "Neither peer nor bot found for %s" % command
 
         if not peer: 
@@ -71,14 +73,17 @@ class TweetClient:
         else:
             peer_uid = peer.get('id')
             peer_db = self.db.peers.get_by_uid(peer_uid)
+            bot_uid = peer_db.get('bot_uid')
 
-        full = self.db.commands.new(sid, command, creator.get('id'), peer_uid)
+        full = self.db.commands.new(sid, command, creator.get('id'), peer_uid, bot_uid)
+        if peer_db:
+            full.update(peer_db)
 
-        return full.update(peer_db)
+        return full
 
     def _execute_human_response(self, command, args):
-        logging.info(command)
-        logging.info(args)
+        logging.info("Command: %s" % str(command))
+        logging.info("Args: %s" % str(args))
         # TODO: Validate args
         
         # check for associated bot
@@ -97,12 +102,12 @@ class TweetClient:
             return self.db.commands.update_status(command.get('sid'), sid, 'data-req')
 
     def _execute_bot_response(self, command, args):
-        logging.info(command)
-        logging.info(args)
+        logging.info("Command: %s" % str(command))
+        logging.info("Args: %s" % str(args))
 
-        if command == "GETINFO":
+        if command.get('command') == "GETINFO":
             msg = self.lnrpc.get_uri()
-        elif command == "GETINVOICE":
+        elif command.get('command') == "GETINVOICE":
             msg = self.lnrpc.get_uri(args)
         sid = self._post(msg, command.get('last_sid'))
         # update status
@@ -142,8 +147,9 @@ class TweetClient:
                 command_full = self._record_new_command(command, sid, creator, peer, bot)
                 # Respond to command
                 if command in BOT_COMMANDS:
-                    self._execute_bot_response(command_full, tweet)
+                    r = self._execute_bot_response(command_full, tweet)
                 else:
-                    self._execute_human_response(command_full, tweet)
+                    r = self._execute_human_response(command_full, tweet)
+                logging.info(r)
             continue
        
