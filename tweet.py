@@ -2,8 +2,8 @@ from TwitterAPI import TwitterAPI
 import json
 import logging
 
-HUMAN_COMMANDS = ['CONNECT', 'GIVE']
-BOT_COMMANDS = ['GETINFO', 'FUNDCHANNEL', 'PAY_INVOICE', 'INVOICE']
+HUMAN_COMMANDS = ['CONNECT', 'GIVE', 'FUNDCHANNEL']
+BOT_COMMANDS = ['GETINFO', 'GETINVOICE']
 
 class TweetClient:
     def __init__(self, config, db, owner):
@@ -55,14 +55,50 @@ class TweetClient:
 
         return None, None, None
 
-    def _execute_response(self, sid, command, status):
+    def _record_new_command(self, sid, creator, command, peer, bot):
+        assert bot or peer, "Neither peer nor bot found for %s" % command
+
+        if not peer: 
+            bot_uid = bot.get('id') 
+            peer_db = self.db.peers.get_by_bot(bot_uid)
+            peer_uid = None if not peer_db else peer_db.get('uid')
+        else:
+            peer_uid = peer.get('id')
+            peer_db = self.db.peers.get_by_uid(peer_uid)
+
+        full = self.db.commands.new(sid, command, creator.get('id'), peer_uid)
+
+        return full.update(peer_db)
+
+    def _execute_bot_response(self, command, args):
         logging.info(command)
+        logging.info(args)
+
+    def _execute_human_response(self, command, args):
+        logging.info(command)
+        logging.info(args)
+        # TODO: Validate args
+        
+        # check for associated bot
+        if not command.get('bot_uid'):
+            self._request_bot(command)
+        else: 
+            reply_to = '@%s ' % command.get('bot_name')
+
+            if command == "CONNECT":
+                msg = '%s GETINFO' % reply_to
+            elif command == "GIVE":
+                msg = '%s GETINVOICE %d' % (reply_to, args)
+            sid = self._post(msg, command.get('last_sid'))
+            # update status
 
     def _resume_command(self, tweet, command):
         """ Continue executing an existing command
             if tweet.get('in_reply_to_status_id')
         """
+        # check for correct user
         logging.info(tweet)
+
     def watch(self):  #callback functions for get_uri, fundchannel?, pay, invoice
         """
         Filter tweets based on bot's screen name
@@ -80,11 +116,14 @@ class TweetClient:
                 sid = m.get('id_str')
                 creator = m.get('user')
                 command, peer, bot = self._filter(m)
+                if not command:
+                    continue
                 # Record new command
-                peer_uid = None if not peer else peer.get('id')
-                bot_uid = None if not bot else bot.get('id') 
-                self.db.commands.new(sid, command, creator.get('id'), peer_uid, bot_uid)
+                command_full = self._record_new_command(command, sid, creator, peer, bot)
                 # Respond to command
-                self._execute_response(sid, command)
+                if command in BOT_COMMANDS:
+                    self._execute_bot_response(command_full, tweet)
+                else:
+                    self._execute_human_response(command_full, tweet)
             continue
        
