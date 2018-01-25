@@ -34,6 +34,8 @@ class Commands:
                 ( sid, command, creator_uid, peer_uid, bot_uid, sid )
             )
 
+        return self.get_by_sid(sid)
+
     def get_by_sid(self, sid):
         """
         Find command by originating status ID

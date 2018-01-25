@@ -1,7 +1,7 @@
 
 def Peer(uid, screen_name, bot_uid, bot_name):
     return {
-        "uid": uid,
+        "peer_uid": uid,
         "screen_name": screen_name,
         "bot_uid": bot_uid,
         "bot_name": bot_name
