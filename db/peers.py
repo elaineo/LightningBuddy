@@ -1,4 +1,11 @@
 
+def Peer(uid, screen_name, bot_uid, bot_name):
+    return {
+        "uid": uid,
+        "screen_name": screen_name,
+        "bot_uid": bot_uid,
+        "bot_name": bot_name
+    }
 
 class Peers:
     """Table of owner's peers. Owner is presumably human. Bots can be shared, as can nodes (for now). 
@@ -21,6 +28,10 @@ class Peers:
             '    bot_name VARCHAR, pubkey VARCHAR, ip_addr VARCHAR, port INTEGER,'
             '    updated DATETIME DEFAULT (STRFTIME(\'%s\',\'now\')) NOT NULL);'])
 
+    def __getitem__(self, uid):
+        return Peer(*self.db.execute(
+            "SELECT uid, screen_name, bot_uid, bot_name FROM peers WHERE uid=?", (uid, )).fetchone())
+
     def new(self, uid, screen_name):
         """
         Add new Twitter friend
@@ -31,6 +42,7 @@ class Peers:
             '    VALUES (?, ?)'],  
                 ( uid, screen_name )
             )
+        return self[uid]
 
     def add_bot(self, uid, bot_uid, bot_name):
         """
