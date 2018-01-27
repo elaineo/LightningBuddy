@@ -104,21 +104,23 @@ class TweetClient:
     def _execute_bot_response(self, command, args):
         logging.info("Command: %s" % str(command))
         logging.info("Args: %s" % str(args))
+        # TODO: Validate args
 
         if command.get('command') == "GETINFO":
             msg = self.lnrpc.get_uri()
         elif command.get('command') == "GETINVOICE":
-            msg = self.lnrpc.get_uri(args)
+            msg = self.lnrpc.get_invoice(args)
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
 
-    def _resume_command(self, tweet, command):
+    def _resume_command(self, command, tweet):
         """ Continue executing an existing command
-            if tweet.get('in_reply_to_status_id')
         """
-        # check for correct user
         logging.info(tweet)
+        logging.info(command)
+        # if command.get('command') == "CONNECT":
+        
 
     def watch(self):  #callback functions for get_uri, fundchannel?, pay, invoice
         """
@@ -130,12 +132,16 @@ class TweetClient:
             logging.info(m)
             last_sid = m.get('in_reply_to_status_id')
             if last_sid:
+                # Look up command
                 command = self.db.commands.get_by_last_sid(last_sid)
                 if not command:
                     continue
-                response = self._resume_command(command, m)
-                # Look up command
+                # Check for correct user
+                user = tweet.get('user').get('id')
+                if user != command.get('peer_uid') and user != command.get('bot_uid'):
+                    continue
                 # Respond to command
+                response = self._resume_command(command, m)
             else:
                 tweet = m.get('text')
                 sid = m.get('id_str')
