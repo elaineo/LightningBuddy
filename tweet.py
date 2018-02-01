@@ -73,11 +73,12 @@ class TweetClient:
         else:
             peer_uid = peer.get('id')
             peer_db = self.db.peers.get_by_uid(peer_uid)
-            bot_uid = peer_db.get('bot_uid')
+            bot_uid = None if not peer_db else peer_db.get('bot_uid')
+            if not peer_db:
+                peer_db = self.db.peers.new(peer_uid, peer.get('screen_name'))
 
-        full = self.db.commands.new(sid, command, creator.get('id'), peer_uid, bot_uid)
-        if peer_db:
-            full.update(peer_db)
+        full = self.db.commands.new(sid, command, creator.get('id'), peer_uid, bot_uid) 
+        full.update(peer_db)
 
         return full
 
@@ -119,6 +120,18 @@ class TweetClient:
         """
         logging.info(tweet)
         logging.info(command)
+        owner = tweet.get('user')
+        if command.get('status') == 'bot-req':
+            # other user involved
+            users = tweet.get('entities').get('user_mentions')
+            user = [ u for u in users if u.get('id') != self.bot.get('id') ]
+            bot = None if len(user)==0 else user[-1]
+            if bot:
+                self.db.peers.add_bot(owner.get('id'), bot.get('id'), bot.get('screen_name'))
+                self.db.commands.update_status(command.get('last_sid'), tweet.get('id'), 'bot-ack')
+                self._request_data(command)
+            else:
+                logging.error('Bot retrieval error')
         # if command.get('command') == "CONNECT":
         
 
@@ -137,7 +150,7 @@ class TweetClient:
                 if not command:
                     continue
                 # Check for correct user
-                user = tweet.get('user').get('id')
+                user = m.get('user').get('id')
                 if user != command.get('peer_uid') and user != command.get('bot_uid'):
                     continue
                 # Respond to command
