@@ -32,7 +32,20 @@ class TweetClient:
     def _request_bot(self, command):
         reply_to = "@%s" % command.get('screen_name')
         msg = reply_to + " Please introduce me to your bot."
-        return self._post(msg, command.get('last_sid'))
+        sid = self._post(msg, command.get('last_sid'))
+        return self.db.commands.update_status(command.get('sid'), sid, 'bot-req')
+
+    def _request_data(self, command):
+        # same as execute_human_response
+        reply_to = "@%s" % command.get('bot_name')
+
+        if command == "CONNECT":
+            msg = '%s GETINFO' % reply_to
+        elif command == "GIVE":
+            msg = '%s GETINVOICE %d' % (reply_to, args)
+        sid = self._post(msg, command.get('last_sid'))
+        # update status
+        return self.db.commands.update_status(command.get('sid'), sid, 'data-req')
 
     def _filter(self, tweet):
         """ Filter for new instructions from human owner or other bots
@@ -89,18 +102,9 @@ class TweetClient:
         
         # check for associated bot
         if not command.get('bot_uid'):
-            sid = self._request_bot(command)
-            return self.db.commands.update_status(command.get('sid'), sid, 'bot-req')
+            return self._request_bot(command)
         else: 
-            reply_to = '@%s ' % command.get('bot_name')
-
-            if command == "CONNECT":
-                msg = '%s GETINFO' % reply_to
-            elif command == "GIVE":
-                msg = '%s GETINVOICE %d' % (reply_to, args)
-            sid = self._post(msg, command.get('last_sid'))
-            # update status
-            return self.db.commands.update_status(command.get('sid'), sid, 'data-req')
+            return self._request_data(command)
 
     def _execute_bot_response(self, command, args):
         logging.info("Command: %s" % str(command))
@@ -116,7 +120,7 @@ class TweetClient:
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
 
     def _resume_command(self, command, tweet):
-        """ Continue executing an existing command
+        """ Continue executing an existing command, either from bot-req or data-req
         """
         logging.info(tweet)
         logging.info(command)
