@@ -119,6 +119,23 @@ class TweetClient:
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
 
+    def _process_bot_response(self, command, args):
+        logging.info("Command: %s" % str(command))
+        logging.info("Args: %s" % str(args))
+        # TODO: Validate args
+
+        if command.get('command') == "CONNECT":
+            # Connect to new peer
+            # arg should be peer_id, host, port
+            self.lnrpc.connect(args)
+        elif command.get('command') == "GIVE":
+            # Pay invoice 
+            # arg should be bolt11
+            self.lnrpc.pay(args)
+        sid = self._post(msg, command.get('last_sid'))
+        # update status
+        return self.db.commands.update_status(command.get('sid'), sid, 'complete')
+
     def _resume_command(self, command, tweet):
         """ Continue executing an existing command, either from bot-req or data-req
         """
@@ -136,8 +153,9 @@ class TweetClient:
                 self._request_data(command)
             else:
                 logging.error('Bot retrieval error')
-        # if command.get('command') == "CONNECT":
-        
+        elif command.get('status') == 'data-req':
+            # forward data to rpc
+            return self._process_bot_response(command, tweet)
 
     def watch(self):  #callback functions for get_uri, fundchannel?, pay, invoice
         """
