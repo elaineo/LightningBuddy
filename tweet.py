@@ -26,7 +26,9 @@ class TweetClient:
             raise 
 
     def _post(self, msg, reply_sid):
-        tweet = self.api.request('statuses/update', {'status': msg, 'in_reply_to_status_id': reply_sid }).json()
+        tweet = self.api.request('statuses/update', 
+            {'status': msg, 'in_reply_to_status_id': reply_sid, 'auto_populate_reply_metadata': True }).json()
+        logging.info(tweet)
         return tweet.get('id_str')
 
     def _request_bot(self, command):
@@ -39,13 +41,13 @@ class TweetClient:
         # same as execute_human_response
         reply_to = "@%s" % command.get('bot_name')
 
-        if command == "CONNECT":
+        if command.get('command') == "CONNECT":
             msg = '%s GETINFO' % reply_to
             status = 'data-req'
-        elif command == "GIVE":
+        elif command.get('command') == "GIVE":
             msg = '%s GETINVOICE %d' % (reply_to, args)
             status = 'data-req'
-        elif command == "FUNDCHANNEL":
+        elif command.get('command') == "FUNDCHANNEL":
             peer_id = command.get('pubkey')
             msg = self.lnrpc._fundchannel(peer_id)
             status = 'complete'
@@ -133,13 +135,13 @@ class TweetClient:
         if command.get('command') == "CONNECT":
             # Connect to new peer
             # arg should be peer_id, host, port
-            msg = self.lnrpc.connect(args)
+            msg = self.lnrpc._connect(args)
             uid = command.get('peer_uid')
             self.db.peers.set_node(uid, args)
         elif command.get('command') == "GIVE":
             # Pay invoice 
             # arg should be bolt11
-            msg = self.lnrpc.pay(args)
+            msg = self.lnrpc._pay(args)
         elif command.get('command') == "FUNDCHANNEL":
             # args should be peer_id
             peer_id = command.get('pubkey')
