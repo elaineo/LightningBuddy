@@ -13,6 +13,8 @@ class Commands:
 
     fields = ['sid', 'command', 'creator_uid', 'peer_uid', 'bot_uid', 'last_sid', 'status', 'updated']
 
+    status = ['new', 'bot-req', 'bot-ack', 'data-req', 'data-ack', 'complete']
+
     def __init__(self, db):
 
         self.db = db
