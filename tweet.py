@@ -41,11 +41,17 @@ class TweetClient:
 
         if command == "CONNECT":
             msg = '%s GETINFO' % reply_to
+            status = 'data-req'
         elif command == "GIVE":
             msg = '%s GETINVOICE %d' % (reply_to, args)
+            status = 'data-req'
+        elif command == "FUNDCHANNEL":
+            peer_id = command.get('pubkey')
+            msg = self.lnrpc._fundchannel(peer_id)
+            status = 'complete'
         sid = self._post(msg, command.get('last_sid'))
         # update status
-        return self.db.commands.update_status(command.get('sid'), sid, 'data-req')
+        return self.db.commands.update_status(command.get('sid'), sid, status)
 
     def _filter(self, tweet):
         """ Filter for new instructions from human owner or other bots
@@ -127,11 +133,17 @@ class TweetClient:
         if command.get('command') == "CONNECT":
             # Connect to new peer
             # arg should be peer_id, host, port
-            self.lnrpc.connect(args)
+            msg = self.lnrpc.connect(args)
+            uid = command.get('peer_uid')
+            self.db.peers.set_node(uid, args)
         elif command.get('command') == "GIVE":
             # Pay invoice 
             # arg should be bolt11
-            self.lnrpc.pay(args)
+            msg = self.lnrpc.pay(args)
+        elif command.get('command') == "FUNDCHANNEL":
+            # args should be peer_id
+            peer_id = command.get('pubkey')
+            msg = self.lnrpc._fundchannel(peer_id)
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
@@ -157,7 +169,7 @@ class TweetClient:
             # forward data to rpc
             return self._process_bot_response(command, tweet)
 
-    def watch(self):  #callback functions for get_uri, fundchannel?, pay, invoice
+    def watch(self):  
         """
         Filter tweets based on bot's screen name
         """
