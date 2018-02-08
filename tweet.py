@@ -85,8 +85,7 @@ class TweetClient:
             msg = self.lnrpc._fundchannel(peer_id)
             status = 'complete'
         else:
-            print("Command not found: %s" % command.get('command'))
-            raise 
+            raise ValueError("Command not found: %s" % command.get('command'))
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, status)
@@ -192,11 +191,12 @@ class TweetClient:
             bot = None if len(user)==0 else user[-1]
             if bot:
                 self.db.peers.add_bot(owner.get('id'), bot.get('id'), bot.get('screen_name'))
-                self.db.commands.update_status(command.get('last_sid'), tweet.get('id'), 'bot-ack')
+                self.db.commands.update_status(command.get('sid'), tweet.get('id'), 'bot-ack')
                 self._request_data(command)
             else:
                 logging.error('Bot retrieval error')
         elif command.get('status') == 'data-req':
+            self.db.commands.update_status(command.get('sid'), tweet.get('id'), 'data-ack')
             # forward data to rpc
             return self._process_bot_response(command, tweet.get('text'))
 

@@ -58,12 +58,12 @@ class Commands:
 
         return None       
 
-    def update_status(self, last_sid, new_sid, status):
+    def update_status(self, sid, new_sid, status):
         """
         Update command status based on status ID
         """
         self.db.execute(
-            'UPDATE commands SET last_sid = ? , status = ? WHERE last_sid = ?',
-            (new_sid, status, last_sid))
+            'UPDATE commands SET last_sid = ? , status = ? WHERE sid = ?',
+            (new_sid, status, sid))
 
         return self.get_by_last_sid(new_sid)
