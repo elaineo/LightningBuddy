@@ -191,8 +191,8 @@ class TweetClient:
             bot = None if len(user)==0 else user[-1]
             if bot:
                 self.db.peers.add_bot(owner.get('id'), bot.get('id'), bot.get('screen_name'))
-                self.db.commands.update_status(command.get('sid'), tweet.get('id'), 'bot-ack')
-                self._request_data(command)
+                self.db.commands.update_bot(command.get('sid'), tweet.get('id'), bot.get('id'), 'bot-ack')
+                self._request_data(command, tweet.get('text'))
             else:
                 logging.error('Bot retrieval error')
         elif command.get('status') == 'data-req':

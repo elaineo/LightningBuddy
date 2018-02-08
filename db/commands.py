@@ -58,6 +58,16 @@ class Commands:
 
         return None       
 
+    def update_bot(self, sid, new_sid, bot_uid, status):
+        """
+        Update command status based on status ID
+        """
+        self.db.execute(
+            'UPDATE commands SET last_sid = ? , bot_uid = ? , status = ? WHERE sid = ?',
+            (new_sid, bot_uid, status, sid))
+
+        return self.get_by_last_sid(new_sid)
+
     def update_status(self, sid, new_sid, status):
         """
         Update command status based on status ID
