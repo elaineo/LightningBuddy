@@ -1,9 +1,41 @@
 from TwitterAPI import TwitterAPI
 import json
 import logging
+import re
 
 HUMAN_COMMANDS = ['CONNECT', 'GIVE', 'FUNDCHANNEL']
 BOT_COMMANDS = ['GETINFO', 'GETINVOICE']
+
+class Parsers:
+    @staticmethod
+    def extract_uri(msg):
+        regex = re.compile('[0-9A-Fa-f]{66}@*[\d.]*:*\d*')
+        uri = list(filter((lambda x: re.match(regex, x)), msg.split()))
+        if len(uri) < 1:
+            raise ValueError("Invalid URI: %s" % msg)
+        return uri[0]
+
+    @staticmethod
+    def extract_amount(msg):
+        # TODO: Parse currency units
+        amount = re.findall('\d+|$', msg)
+        if len(amount) < 1:
+            raise ValueError("Invalid amount: %s" % msg)
+        return amount[0]
+
+    @staticmethod
+    def extract_info(uri):
+        peer_id, peer_address = uri.split("@")
+        peer_ip, peer_port = peer_address.split(":")
+        return peer_id, peer_ip, peer_port
+
+    @staticmethod
+    def extract_bolt11(msg):
+        regex = re.compile('ln[0-9A-Za-z]+')
+        bolt11 = list(filter((lambda x: re.match(regex, x)), msg.split()))
+        if len(bolt11) < 1:
+            raise ValueError("Invalid invoice: %s" % msg)
+        return bolt11[0]
 
 class TweetClient:
     def __init__(self, config, db, owner, lnrpc):
@@ -37,7 +69,7 @@ class TweetClient:
         sid = self._post(msg, command.get('last_sid'))
         return self.db.commands.update_status(command.get('sid'), sid, 'bot-req')
 
-    def _request_data(self, command):
+    def _request_data(self, command, tweet):
         # same as execute_human_response
         reply_to = "@%s" % command.get('bot_name')
 
@@ -45,12 +77,16 @@ class TweetClient:
             msg = '%s GETINFO' % reply_to
             status = 'data-req'
         elif command.get('command') == "GIVE":
-            msg = '%s GETINVOICE %d' % (reply_to, args)
+            amount = Parsers.extract_amount(tweet)
+            msg = '%s GETINVOICE %d' % (reply_to, amount)
             status = 'data-req'
         elif command.get('command') == "FUNDCHANNEL":
             peer_id = command.get('pubkey')
             msg = self.lnrpc._fundchannel(peer_id)
             status = 'complete'
+        else:
+            print("Command not found: %s" % command.get('command'))
+            raise 
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, status)
@@ -103,45 +139,38 @@ class TweetClient:
 
         return full
 
-    def _execute_human_response(self, command, args):
-        logging.info("Command: %s" % str(command))
-        logging.info("Args: %s" % str(args))
-        # TODO: Validate args
-        
+    def _execute_human_response(self, command, tweet):
         # check for associated bot
         if not command.get('bot_uid'):
             return self._request_bot(command)
         else: 
-            return self._request_data(command)
+            return self._request_data(command, tweet)
 
-    def _execute_bot_response(self, command, args):
-        logging.info("Command: %s" % str(command))
-        logging.info("Args: %s" % str(args))
-        # TODO: Validate args
-
+    def _execute_bot_response(self, command, tweet):
         if command.get('command') == "GETINFO":
             msg = self.lnrpc.get_uri()
         elif command.get('command') == "GETINVOICE":
-            msg = self.lnrpc.get_invoice(args)
+            amount = Parsers.extract_amount(tweet)
+            label = tweet
+            msg = self.lnrpc.get_invoice(amount, label)
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
 
-    def _process_bot_response(self, command, args):
-        logging.info("Command: %s" % str(command))
-        logging.info("Args: %s" % str(args))
-        # TODO: Validate args
-
+    def _process_bot_response(self, command, tweet):
         if command.get('command') == "CONNECT":
             # Connect to new peer
-            # arg should be peer_id, host, port
-            msg = self.lnrpc._connect(args)
+            uri = Parsers.extract_uri(tweet)
+            msg = self.lnrpc._connect(uri)
+            pubkey, ip, port = Parsers.extract_info(uri)
             uid = command.get('peer_uid')
-            self.db.peers.set_node(uid, args)
+            self.db.peers.set_node(uid, pubkey, ip, port)
         elif command.get('command') == "GIVE":
-            # Pay invoice 
-            # arg should be bolt11
-            msg = self.lnrpc._pay(args)
+            # Pay invoice
+            # TODO: Validate invoice amount
+            bolt11 = Parsers.extract_bolt11(tweet)
+            pay_info = self.lnrpc.decodepay(bolt11)
+            msg = self.lnrpc._pay(bolt11)
         elif command.get('command') == "FUNDCHANNEL":
             # args should be peer_id
             peer_id = command.get('pubkey')
@@ -169,7 +198,7 @@ class TweetClient:
                 logging.error('Bot retrieval error')
         elif command.get('status') == 'data-req':
             # forward data to rpc
-            return self._process_bot_response(command, tweet)
+            return self._process_bot_response(command, tweet.get('text'))
 
     def watch(self):  
         """
