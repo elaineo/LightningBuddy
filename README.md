@@ -15,6 +15,6 @@ pip install TwitterAPI
 
 Install Twitning:
 ```
-git clone https://github.com/elaineo/twitning
-cd twitning
+git clone https://github.com/elaineo/LightningBuddy
+cd LightningBuddy
 ```
