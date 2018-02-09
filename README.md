@@ -13,7 +13,7 @@ pip install pylightning
 pip install TwitterAPI
 ```
 
-Install Twitning:
+Install LightningBuddy:
 ```
 git clone https://github.com/elaineo/LightningBuddy
 cd LightningBuddy
