@@ -25,8 +25,11 @@ class Parsers:
 
     @staticmethod
     def extract_info(uri):
-        peer_id, peer_address = uri.split("@")
-        peer_ip, peer_port = peer_address.split(":")
+        info = uri.split("@")
+        peer_id = info[0]
+        address = info[1].split(":") if len(info) > 1 else None
+        peer_ip = address[0] if address else None
+        peer_port = address[1] if address and len(address) > 1 else None 
         return peer_id, peer_ip, peer_port
 
     @staticmethod
@@ -138,6 +141,15 @@ class TweetClient:
 
         return full
 
+    def _get_full(self, sid):
+        command = self.db.commands.get_by_sid(sid)
+        if command.get('bot_uid'):
+            peer = self.db.peers.get_by_bot(command.get('bot_uid'))
+        else:
+            peer = self.db.peers.get_by_uid(command.get('peer_uid'))
+        command.update(peer)
+        return command
+
     def _execute_human_response(self, command, tweet):
         # check for associated bot
         if not command.get('bot_uid'):
@@ -181,8 +193,6 @@ class TweetClient:
     def _resume_command(self, command, tweet):
         """ Continue executing an existing command, either from bot-req or data-req
         """
-        logging.info(tweet)
-        logging.info(command)
         owner = tweet.get('user')
         if command.get('status') == 'bot-req':
             # other user involved
@@ -192,13 +202,15 @@ class TweetClient:
             if bot:
                 self.db.peers.add_bot(owner.get('id'), bot.get('id'), bot.get('screen_name'))
                 self.db.commands.update_bot(command.get('sid'), tweet.get('id'), bot.get('id'), 'bot-ack')
-                self._request_data(command, tweet.get('text'))
+                command_full = self._get_full(command.get('sid'))
+                self._request_data(command_full, tweet.get('text'))
             else:
                 logging.error('Bot retrieval error')
         elif command.get('status') == 'data-req':
             self.db.commands.update_status(command.get('sid'), tweet.get('id'), 'data-ack')
+            command_full = self._get_full(command.get('sid'))
             # forward data to rpc
-            return self._process_bot_response(command, tweet.get('text'))
+            return self._process_bot_response(command_full, tweet.get('text'))
 
     def watch(self):  
         """
@@ -212,6 +224,7 @@ class TweetClient:
             if last_sid:
                 # Look up command
                 command = self.db.commands.get_by_last_sid(last_sid)
+                logging.info(command)
                 if not command:
                     continue
                 # Check for correct user
@@ -219,12 +232,13 @@ class TweetClient:
                 if user != command.get('peer_uid') and user != command.get('bot_uid'):
                     continue
                 # Respond to command
-                response = self._resume_command(command, m)
+                r = self._resume_command(command, m)
             else:
                 tweet = m.get('text')
                 sid = m.get('id_str')
                 creator = m.get('user')
                 command, peer, bot = self._filter(m)
+                logging.info('Command: %s, Peer: %s, Bot: %s' % (command, str(peer), str(bot)) )
                 if not command:
                     continue
                 # Record new command
@@ -234,6 +248,6 @@ class TweetClient:
                     r = self._execute_bot_response(command_full, tweet)
                 else:
                     r = self._execute_human_response(command_full, tweet)
-                logging.info(r)
+            logging.info(r)
             continue
        
