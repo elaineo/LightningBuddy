@@ -86,8 +86,12 @@ class TweetClient:
             status = 'data-req'
         elif command.get('command') == "FUNDCHANNEL":
             peer_id = command.get('pubkey')
-            msg = self.lnrpc._fundchannel(peer_id)
-            status = 'complete'
+            if peer_id:
+                msg = self.lnrpc._fundchannel(peer_id)
+                status = 'complete'
+            else:
+                msg = '%s GETINFO' % reply_to
+                status = 'data-req'
         else:
             raise ValueError("Command not found: %s" % command.get('command'))
         sid = self._post(msg, command.get('last_sid'))
@@ -185,9 +189,10 @@ class TweetClient:
             pay_info = self.lnrpc.decodepay(bolt11)
             msg = self.lnrpc._pay(bolt11)
         elif command.get('command') == "FUNDCHANNEL":
-            # args should be peer_id
-            peer_id = command.get('pubkey')
-            msg = self.lnrpc._fundchannel(peer_id)
+            # Process response to GETINFO
+            uri = Parsers.extract_uri(tweet)
+            pubkey, _, _ = Parsers.extract_info(uri)            
+            msg = self.lnrpc._fundchannel(pubkey)
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
