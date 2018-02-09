@@ -137,7 +137,8 @@ class TweetClient:
                 peer_db = self.db.peers.new(peer_uid, peer.get('screen_name'))
 
         full = self.db.commands.new(sid, command, creator.get('id'), peer_uid, bot_uid) 
-        full.update(peer_db)
+        if peer_db:
+            full.update(peer_db)
 
         return full
 
