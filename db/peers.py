@@ -50,9 +50,11 @@ class Peers:
         """
         self.db.execute([
             'INSERT OR REPLACE INTO peers (',
-            '    uid, bot_uid, bot_name )', 
-            '    VALUES (?, ?, ?)'],  
-                ( uid, bot_uid, bot_name )
+            '    uid, screen_name, bot_uid, bot_name )', 
+            '    VALUES (?, '
+            '    (SELECT screen_name FROM peers WHERE uid = ?),'
+            '    ?, ?)'],  
+                ( uid, uid, bot_uid, bot_name )
             )
 
         return self.get_by_uid(uid)
