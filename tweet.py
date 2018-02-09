@@ -3,7 +3,7 @@ import json
 import logging
 import re
 
-HUMAN_COMMANDS = ['CONNECT', 'GIVE', 'FUNDCHANNEL']
+HUMAN_COMMANDS = ['CONNECT', 'PAY', 'FUNDCHANNEL']
 BOT_COMMANDS = ['GETINFO', 'GETINVOICE']
 
 class Parsers:
@@ -16,12 +16,13 @@ class Parsers:
         return uri[0]
 
     @staticmethod
-    def extract_amount(msg):
+    def extract_payment(msg):
         # TODO: Parse currency units
         amount = re.findall('\d+|$', msg)
         if len(amount) < 1:
             raise ValueError("Invalid amount: %s" % msg)
-        return amount[0]
+        description = msg.split(amount, 1)[-1]
+        return int(amount[0]), description
 
     @staticmethod
     def extract_info(uri):
@@ -79,9 +80,9 @@ class TweetClient:
         if command.get('command') == "CONNECT":
             msg = '%s GETINFO' % reply_to
             status = 'data-req'
-        elif command.get('command') == "GIVE":
-            amount = Parsers.extract_amount(tweet)
-            msg = '%s GETINVOICE %d' % (reply_to, amount)
+        elif command.get('command') == "PAY":
+            amount, description = Parsers.extract_payment(tweet)
+            msg = '%s GETINVOICE %d %s' % (reply_to, amount, description)
             status = 'data-req'
         elif command.get('command') == "FUNDCHANNEL":
             peer_id = command.get('pubkey')
@@ -162,9 +163,9 @@ class TweetClient:
         if command.get('command') == "GETINFO":
             msg = self.lnrpc.get_uri()
         elif command.get('command') == "GETINVOICE":
-            amount = Parsers.extract_amount(tweet)
-            label = tweet
-            msg = self.lnrpc.get_invoice(amount, label)
+            amount, description = Parsers.extract_payment(tweet)
+            # TODO: generate unique label
+            msg = self.lnrpc.get_invoice(amount, "twitning", description)
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
@@ -177,7 +178,7 @@ class TweetClient:
             pubkey, ip, port = Parsers.extract_info(uri)
             uid = command.get('peer_uid')
             self.db.peers.set_node(uid, pubkey, ip, port)
-        elif command.get('command') == "GIVE":
+        elif command.get('command') == "PAY":
             # Pay invoice
             # TODO: Validate invoice amount
             bolt11 = Parsers.extract_bolt11(tweet)
