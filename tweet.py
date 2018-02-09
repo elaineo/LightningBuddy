@@ -18,10 +18,10 @@ class Parsers:
     @staticmethod
     def extract_payment(msg):
         # TODO: Parse currency units
-        amount = re.findall('\d+|$', msg)
+        amount = re.findall('\ \d+|$', msg)
         if len(amount) < 1:
             raise ValueError("Invalid amount: %s" % msg)
-        description = msg.split(amount, 1)[-1]
+        description = msg.split(amount[0], 1)[-1]
         return int(amount[0]), description
 
     @staticmethod
@@ -131,9 +131,9 @@ class TweetClient:
         assert bot or peer, "Neither peer nor bot found for %s" % command
 
         if not peer: 
-            bot_uid = bot.get('id') 
-            peer_db = self.db.peers.get_by_bot(bot_uid)
-            peer_uid = None if not peer_db else peer_db.get('uid')
+            bot_uid = bot.get('id')
+            peer_uid = None
+            peer_db = None
         else:
             peer_uid = peer.get('id')
             peer_db = self.db.peers.get_by_uid(peer_uid)
