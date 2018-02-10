@@ -168,8 +168,7 @@ class TweetClient:
             msg = self.lnrpc.get_uri()
         elif command.get('command') == "GETINVOICE":
             amount, description = Parsers.extract_payment(tweet)
-            # TODO: generate unique label
-            msg = self.lnrpc.get_invoice(amount, "twitning", description)
+            msg = self.lnrpc.get_invoice(amount, command.get('bot_name'), description)
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
@@ -178,8 +177,8 @@ class TweetClient:
         if command.get('command') == "CONNECT":
             # Connect to new peer
             uri = Parsers.extract_uri(tweet)
-            msg = self.lnrpc._connect(uri)
             pubkey, ip, port = Parsers.extract_info(uri)
+            msg = self.lnrpc._connect(pubkey, ip, port)
             uid = command.get('peer_uid')
             self.db.peers.set_node(uid, pubkey, ip, port)
         elif command.get('command') == "PAY":
