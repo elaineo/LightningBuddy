@@ -2,7 +2,7 @@
 
 Twitter relay for Lightning JSON-RPC interface.
 
-Twitning is a library that can be used to talk to a lightning node from a Twitter account. See the [Twitning API](https://github.com/elaineo/twitning/wiki) in the wiki.
+LightningBuddy is a library that can be used to talk to a lightning node from a Twitter account. See the [LightningBuddy API](https://github.com/elaineo/LightningBuddy/wiki) in the wiki.
 
 ### Getting started
 Install `bitcoind` and `c-Lightning`: https://github.com/ElementsProject/lightning
