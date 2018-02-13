@@ -227,12 +227,10 @@ class TweetClient:
         for m in msgs:
             logging.info(m)
             last_sid = m.get('in_reply_to_status_id')
-            if last_sid:
+            command = self.db.commands.get_by_last_sid(last_sid) if last_sid else None
+            if command:
                 # Look up command
-                command = self.db.commands.get_by_last_sid(last_sid)
                 logging.info(command)
-                if not command:
-                    continue
                 # Check for correct user
                 user = m.get('user').get('id')
                 if user != command.get('peer_uid') and user != command.get('bot_uid'):
