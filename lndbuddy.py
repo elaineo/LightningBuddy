@@ -32,15 +32,22 @@ class LightningWrapper:
 
     def get_invoice(self, amount, label, description=None):
         try:
-            invoice = self.invoice(amount, "%s%s" % (label, str(random.randrange(999999))), description)
-            return invoice['bolt11']
+            request = ln.Invoice(
+                memo="%s: %s" % (label, description),
+                value=amount
+            )
+            response = stub.AddInvoice(request)
+            return response['payment_request']
         except ValueError as e:
            logging.error(e)
 
     def _pay(self, bolt11):
         try:
-            pay = self.pay(bolt11)
-            return pay['preimage']
+            request = ln.SendRequest(
+                payment_request=bolt11
+            )
+            response = stub.SendPaymentSync(request)
+            return response['payment_preimage']
         except ValueError as e:
            logging.error(e)
 
