@@ -58,8 +58,8 @@ class LightningWrapper:
             request = ln.ConnectPeerRequest(
                 addr=addr
             )
-           response = stub.ConnectPeer(request)
-           return "Connected %s" + response['peer_id']
+            response = stub.ConnectPeer(request)
+            return "Connected %s" + response['peer_id']
         except ValueError as e:
            logging.error(e)
 
