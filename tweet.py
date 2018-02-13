@@ -239,21 +239,22 @@ class TweetClient:
                     continue
                 # Respond to command
                 r = self._resume_command(command, m)
+                logging.info(r)
+                continue
+            tweet = m.get('text')
+            sid = m.get('id_str')
+            creator = m.get('user')
+            command, peer, bot = self._filter(m)
+            logging.info('Command: %s, Peer: %s, Bot: %s' % (command, str(peer), str(bot)) )
+            if not command:
+                continue
+            # Record new command
+            command_full = self._record_new_command(command, sid, creator, peer, bot)
+            # Respond to command
+            if command in BOT_COMMANDS:
+                r = self._execute_bot_response(command_full, tweet)
             else:
-                tweet = m.get('text')
-                sid = m.get('id_str')
-                creator = m.get('user')
-                command, peer, bot = self._filter(m)
-                logging.info('Command: %s, Peer: %s, Bot: %s' % (command, str(peer), str(bot)) )
-                if not command:
-                    continue
-                # Record new command
-                command_full = self._record_new_command(command, sid, creator, peer, bot)
-                # Respond to command
-                if command in BOT_COMMANDS:
-                    r = self._execute_bot_response(command_full, tweet)
-                else:
-                    r = self._execute_human_response(command_full, tweet)
+                r = self._execute_human_response(command_full, tweet)
             logging.info(r)
             continue
        
