@@ -62,7 +62,10 @@ class LightningWrapper:
             )
             response = self.stub.SendPaymentSync(request)
             logging.info(response)
-            return response.payment_preimage.decode("utf-8") 
+            if response.payment_preimage:
+                return response.payment_preimage.decode("utf-8") 
+            else:
+                return str(response)
         except grpc.RpcError as e:
            logging.error(e)
            return e.details()
@@ -91,7 +94,10 @@ class LightningWrapper:
             )
             response = self.stub.OpenChannelSync(request)
             logging.info(response)
-            return str(response) # I don't know why it's only returning funding_txid_bytes
+            if response.funding_txid_str:
+                return response.funding_txid_str
+            else:
+                return str(response) # I don't know why it's only returning funding_txid_bytes
         except grpc.RpcError as e:
            logging.error(e)
            return e.details()
