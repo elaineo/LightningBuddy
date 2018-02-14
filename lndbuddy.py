@@ -25,10 +25,11 @@ class LightningWrapper:
         try:
             request = ln.GetInfoRequest()
             response = self.stub.GetInfo(request)
+            logging.info(response)
             node_id = response.identity_pubkey
             return "%s" % node_id
-        except:
-           logging.error(response)
+        except grpc.RpcError as e:
+           logging.error(e)
 
     def get_invoice(self, amount, label, description=None):
         try:
@@ -37,9 +38,10 @@ class LightningWrapper:
                 value=amount
             )
             response = self.stub.AddInvoice(request)
+            logging.info(response)
             return response.payment_request
-        except:
-           logging.error(response)
+        except grpc.RpcError as e:
+           logging.error(e)
 
     def _pay(self, bolt11):
         try:
@@ -47,9 +49,10 @@ class LightningWrapper:
                 payment_request=bolt11
             )
             response = self.stub.SendPaymentSync(request)
+            logging.info(response)
             return response.payment_preimage.decode("utf-8") 
-        except:
-           logging.error(response)
+        except grpc.RpcError as e:
+           logging.error(e)
 
     def _connect(self, node_id, host=None, port=9735):
         addr = ln.LightningAddress( 
@@ -63,8 +66,8 @@ class LightningWrapper:
             response = self.stub.ConnectPeer(request)
             logging.info(response)
             return "Connected %s" % node_id
-        except:
-           logging.error(response)
+        except grpc.RpcError as e:
+           logging.error(e)
 
     def _fundchannel(self, node_id, satoshis=cfg.CHANNEL_AMOUNT):
         try:
@@ -73,9 +76,10 @@ class LightningWrapper:
                 local_funding_amount=satoshis
             )
             response = self.stub.OpenChannelSync(request)
+            logging.info(response)
             return response.funding_txid_str
-        except:
-           logging.error(response)
+        except grpc.RpcError as e:
+           logging.error(e)
         
 
 
