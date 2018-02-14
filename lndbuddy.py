@@ -50,7 +50,7 @@ class LightningWrapper:
             request = ln.PayReqString(
                 pay_req=bolt11
             )
-            response = stub.DecodePayReq(request)
+            response = self.stub.DecodePayReq(request)
             logging.info(response)
         except grpc.RpcError as e:
            logging.error(e)
