@@ -63,7 +63,7 @@ class LightningWrapper:
             response = self.stub.SendPaymentSync(request)
             logging.info(response)
             if response.payment_preimage:
-                return response.payment_preimage.decode("utf-8") 
+                return response.payment_preimage
             else:
                 return str(response)
         except grpc.RpcError as e:

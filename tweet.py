@@ -200,6 +200,7 @@ class TweetClient:
         """ Continue executing an existing command, either from bot-req or data-req
         """
         owner = tweet.get('user')
+        text = tweet.get('extended_tweet').get('full_text') if tweet.get('truncated') else tweet.get('text')
         if command.get('status') == 'bot-req':
             # other user involved
             users = tweet.get('entities').get('user_mentions')
@@ -209,14 +210,14 @@ class TweetClient:
                 self.db.peers.add_bot(owner.get('id'), bot.get('id'), bot.get('screen_name'))
                 self.db.commands.update_bot(command.get('sid'), tweet.get('id'), bot.get('id'), 'bot-ack')
                 command_full = self._get_full(command.get('sid'))
-                self._request_data(command_full, tweet.get('text'))
+                self._request_data(command_full, text)
             else:
                 logging.error('Bot retrieval error')
         elif command.get('status') == 'data-req':
             self.db.commands.update_status(command.get('sid'), tweet.get('id'), 'data-ack')
             command_full = self._get_full(command.get('sid'))
             # forward data to rpc
-            return self._process_bot_response(command_full, tweet.get('text'))
+            return self._process_bot_response(command_full, text)
 
     def watch(self):  
         """
@@ -239,7 +240,7 @@ class TweetClient:
                 r = self._resume_command(command, m)
                 logging.info(r)
                 continue
-            tweet = m.get('text')
+            tweet = m.get('extended_tweet').get('full_text') if m.get('truncated') else m.get('text')
             sid = m.get('id_str')
             creator = m.get('user')
             command, peer, bot = self._filter(m)
