@@ -25,10 +25,10 @@ class LightningWrapper:
         try:
             request = ln.GetInfoRequest()
             response = self.stub.GetInfo(request)
-            node_id = response['identity_pubkey']
+            node_id = response.identity_pubkey
             return "%s" % node_id
-        except ValueError as e:
-           logging.error(e)
+        except:
+           logging.error(response)
 
     def get_invoice(self, amount, label, description=None):
         try:
@@ -36,32 +36,35 @@ class LightningWrapper:
                 memo="%s: %s" % (label, description),
                 value=amount
             )
-            response = stub.AddInvoice(request)
-            return response['payment_request']
-        except ValueError as e:
-           logging.error(e)
+            response = self.stub.AddInvoice(request)
+            return response.payment_request
+        except:
+           logging.error(response)
 
     def _pay(self, bolt11):
         try:
             request = ln.SendRequest(
                 payment_request=bolt11
             )
-            response = stub.SendPaymentSync(request)
-            return response['payment_preimage']
-        except ValueError as e:
-           logging.error(e)
+            response = self.stub.SendPaymentSync(request)
+            return response.payment_preimage.decode("utf-8") 
+        except:
+           logging.error(response)
 
-    def _connect(self, node_id, host=None, port=None):
-        addr = "%s@%s" % (node_id, host)
-        addr = "%s:%s" % (addr, port) if port else addr
+    def _connect(self, node_id, host=None, port=9735):
+        addr = ln.LightningAddress( 
+            pubkey=node_id, 
+            host="%s:%s" % (host, port)
+            )
         try:
             request = ln.ConnectPeerRequest(
                 addr=addr
             )
-            response = stub.ConnectPeer(request)
-            return "Connected %s" + response['peer_id']
-        except ValueError as e:
-           logging.error(e)
+            response = self.stub.ConnectPeer(request)
+            logging.info(response)
+            return "Connected %s" % node_id
+        except:
+           logging.error(response)
 
     def _fundchannel(self, node_id, satoshis=cfg.CHANNEL_AMOUNT):
         try:
@@ -69,10 +72,10 @@ class LightningWrapper:
                 node_pubkey_string=node_id,
                 local_funding_amount=satoshis
             )
-            response = stub.OpenChannelSync(request)
-            return tx['funding_txid_str']
-        except ValueError as e:
-           logging.error(e)
+            response = self.stub.OpenChannelSync(request)
+            return response.funding_txid_str
+        except:
+           logging.error(response)
         
 
 
