@@ -30,6 +30,7 @@ class LightningWrapper:
             return "%s@%s:%d" % (node_id, cfg.NODE_ADDRESS, cfg.NODE_PORT)
         except grpc.RpcError as e:
            logging.error(e)
+           return e.details()
 
     def get_invoice(self, amount, label, description=None):
         try:
@@ -42,6 +43,7 @@ class LightningWrapper:
             return response.payment_request
         except grpc.RpcError as e:
            logging.error(e)
+           return e.details()
 
     def _pay(self, bolt11):
         try:
@@ -53,6 +55,7 @@ class LightningWrapper:
             return response.payment_preimage.decode("utf-8") 
         except grpc.RpcError as e:
            logging.error(e)
+           return e.details()
 
     def _connect(self, node_id, host=None, port=9735):
         addr = ln.LightningAddress( 
@@ -68,6 +71,7 @@ class LightningWrapper:
             return "Connected %s" % node_id
         except grpc.RpcError as e:
            logging.error(e)
+           return e.details()
 
     def _fundchannel(self, node_id, satoshis=cfg.CHANNEL_AMOUNT):
         try:
@@ -80,6 +84,7 @@ class LightningWrapper:
             return response.funding_txid_str
         except grpc.RpcError as e:
            logging.error(e)
+           return e.details()
         
 
 
