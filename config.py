@@ -22,7 +22,7 @@ Required for LND
 """
 # Lnd cert is at ~/.lnd/tls.cert on Linux and
 # ~/Library/Application Support/Lnd/tls.cert on Mac
-LND_CERT_PATH = '~/.lnd/tls.cert'
+LND_CERT_PATH = '~/.lnd/tls.cert''
 LND_HOST = 'localhost:10009'
 NODE_ADDRESS = '45.76.235.75'
 NODE_PORT = 9735
