@@ -45,6 +45,16 @@ class LightningWrapper:
            logging.error(e)
            return e.details()
 
+    def decodepay(self, bolt11):
+        try:
+            request = ln.PayReqString(
+                pay_req=bolt11
+            )
+            response = stub.DecodePayReq(request)
+            logging.info(response)
+        except grpc.RpcError as e:
+           logging.error(e)
+
     def _pay(self, bolt11):
         try:
             request = ln.SendRequest(
@@ -81,7 +91,7 @@ class LightningWrapper:
             )
             response = self.stub.OpenChannelSync(request)
             logging.info(response)
-            return response.funding_txid_str
+            return str(response) # I don't know why it's only returning funding_txid_bytes
         except grpc.RpcError as e:
            logging.error(e)
            return e.details()
