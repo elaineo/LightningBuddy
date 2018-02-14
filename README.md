@@ -2,7 +2,7 @@
 
 Twitter relay for Lightning JSON-RPC interface.
 
-LightningBuddy is a library that can be used to talk to a lightning node from a Twitter account. See the [LightningBuddy API](https://github.com/elaineo/LightningBuddy/wiki) in the wiki.
+LightningBuddy is a library that can be used to talk to a lightning node from a Twitter account. See the [LightningBuddy API](https://github.com/elaineo/LightningBuddy/wiki/LightningBuddy-Commands) in the wiki.
 
 ## Getting started
 Install `bitcoind` and `lnd`: https://github.com/lightningnetwork/lnd
