@@ -27,7 +27,7 @@ class LightningWrapper:
             response = self.stub.GetInfo(request)
             logging.info(response)
             node_id = response.identity_pubkey
-            return "%s" % node_id
+            return "%s@%s:%d" % (node_id, cfg.NODE_ADDRESS, cfg.NODE_PORT)
         except grpc.RpcError as e:
            logging.error(e)
 
