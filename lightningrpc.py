@@ -1,4 +1,5 @@
 from lightning import LightningRpc
+import logging
 import random
 
 class LightningWrapper(LightningRpc):
