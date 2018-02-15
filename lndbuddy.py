@@ -105,20 +105,23 @@ class LightningWrapper:
            return e.details()
         
     def open_faucet(self, node_id, satoshis=10000, balance=2000):
-        if satoshis > cfg.CHANNEL_AMOUNT or balance > cfg.FAUCET_AMOUNT:
-            return "Max Channel Size: %d \nMax Faucet Payout: %d" % (cfg.CHANNEL_AMOUNT, cfg.FAUCET_AMOUNT)
         try:
             request = ln.OpenChannelRequest(
                 node_pubkey_string=node_id,
-                local_funding_amount=satoshis,
-                push_sat=balance
+                local_funding_amount=min(satoshis, cfg.CHANNEL_AMOUNT),
+                push_sat=min(balance, cfg.FAUCET_AMOUNT)
             )
             response = self.stub.OpenChannelSync(request)
             logging.info(response)
             if response.funding_txid_str:
-                return response.funding_txid_str
+                r = response.funding_txid_str
             else:
-                return MessageToJson(response) 
+                r = MessageToJson(response) 
+            if satoshis > cfg.CHANNEL_AMOUNT or balance > cfg.FAUCET_AMOUNT:
+                return "Max Channel Size: %d \nMax Faucet Payout: %d \n%s" \
+                    % (cfg.CHANNEL_AMOUNT, cfg.FAUCET_AMOUNT, r)
+            else: 
+                return r
         except grpc.RpcError as e:
            logging.error(e)
            return e.details()
