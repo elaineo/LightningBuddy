@@ -208,7 +208,7 @@ class TweetClient:
         """
         owner = tweet.get('user')
         text = tweet.get('extended_tweet').get('full_text') if tweet.get('truncated') else tweet.get('text')
-        orig_raw = self.api.request('statuses/show', {'id': command.get('sid')})
+        orig_raw = self.api.request('statuses/lookup', {'id': command.get('sid')})
         orig = orig_raw.json()[0]
         if command.get('status') == 'bot-req':
             # other user involved
