@@ -106,8 +106,7 @@ class LightningWrapper:
         
     def open_faucet(self, node_id, satoshis=10000, balance=2000):
         if satoshis > cfg.CHANNEL_AMOUNT or balance > cfg.FAUCET_AMOUNT:
-            return "Max Channel Size: %s \nMax Faucet Payout: %s" % 
-                (cfg.CHANNEL_AMOUNT, cfg.FAUCET_AMOUNT)
+            return "Max Channel Size: %d \nMax Faucet Payout: %d" % (cfg.CHANNEL_AMOUNT, cfg.FAUCET_AMOUNT)
         try:
             request = ln.OpenChannelRequest(
                 node_pubkey_string=node_id,
