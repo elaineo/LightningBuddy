@@ -14,6 +14,8 @@ import rpc_pb2 as ln
 import rpc_pb2_grpc as lnrpc
 import grpc
 
+from google.protobuf.json_format import MessageToJson
+
 class LightningWrapper:
     """API for Lightning gRPC client
     """
@@ -63,7 +65,7 @@ class LightningWrapper:
             response = self.stub.SendPaymentSync(request)
             logging.info(response)
             if response.payment_preimage:
-                return response.payment_preimage
+                return "Preimage %s" % MessageToJson(response.payment_preimage)
             else:
                 return str(response)
         except grpc.RpcError as e:
@@ -97,12 +99,15 @@ class LightningWrapper:
             if response.funding_txid_str:
                 return response.funding_txid_str
             else:
-                return str(response) # I don't know why it's only returning funding_txid_bytes
+                return MessageToJson(response) 
         except grpc.RpcError as e:
            logging.error(e)
            return e.details()
         
     def open_faucet(self, node_id, satoshis=10000, balance=2000):
+        if satoshis > cfg.CHANNEL_AMOUNT or balance > cfg.FAUCET_AMOUNT:
+            return "Max Channel Size: %s \nMax Faucet Payout: %s" % 
+                (cfg.CHANNEL_AMOUNT, cfg.FAUCET_AMOUNT)
         try:
             request = ln.OpenChannelRequest(
                 node_pubkey_string=node_id,
@@ -114,7 +119,7 @@ class LightningWrapper:
             if response.funding_txid_str:
                 return response.funding_txid_str
             else:
-                return str(response) # I don't know why it's only returning funding_txid_bytes
+                return MessageToJson(response) 
         except grpc.RpcError as e:
            logging.error(e)
            return e.details()

@@ -51,6 +51,16 @@ class Parsers:
             raise ValueError("Invalid invoice: %s" % msg)
         return bolt11[0]
 
+    @staticmethod
+    def extract_faucet(msg):
+        amount = re.findall('\ \d+|$', msg)
+        if len(amount) < 1:
+            return None, None
+        elif len(amount) == 1:
+            return int(amount[0]), None
+        else:
+            return int(amount[0]), int(amount[1])
+
 class FaucetClient:
     def __init__(self, config, db, owner, lnrpc):
         self.api = TwitterAPI(config['consumer_key'], config['consumer_secret'], 
@@ -166,7 +176,7 @@ class FaucetClient:
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
 
-    def _process_bot_response(self, command, tweet):
+    def _process_bot_response(self, command, tweet, orig=None):
         if command.get('command') == "OPENFAUCET":
             # Connect to new peer
             uri = Parsers.extract_uri(tweet)
@@ -176,7 +186,9 @@ class FaucetClient:
             self.db.peers.set_node(uid, pubkey, ip, port)
             sid = self._post(msg, command.get('last_sid'))
             # Fund channel (commitment amount, initial balance)
-            msg = "%s\nDONE." % self.lnrpc.open_faucet(pubkey)
+            commitment, init_balance = Parsers.extract_faucet(orig) if orig else None, None
+
+            msg = "%s\nDONE." % self.lnrpc.open_faucet(pubkey, commitment, init_balance)
             sid = self._post(msg, sid)
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
@@ -186,6 +198,8 @@ class FaucetClient:
         """
         owner = tweet.get('user')
         text = tweet.get('extended_tweet').get('full_text') if tweet.get('truncated') else tweet.get('text')
+        orig_raw = self.api.request('statuses/lookup', {'id': command.get('sid')})
+        orig = orig_raw.json()[0]
         if command.get('status') == 'bot-req':
             # other user involved
             users = tweet.get('entities').get('user_mentions')
@@ -202,7 +216,7 @@ class FaucetClient:
             self.db.commands.update_status(command.get('sid'), tweet.get('id'), 'data-ack')
             command_full = self._get_full(command.get('sid'))
             # forward data to rpc
-            return self._process_bot_response(command_full, text)
+            return self._process_bot_response(command_full, text, orig.get('text'))
 
     def watch(self):  
         """
