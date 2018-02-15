@@ -1,4 +1,4 @@
-from tweet import TweetClient
+from faucet import FaucetClient
 import config as cfg
 
 from db import LightningDB
@@ -102,7 +102,22 @@ class LightningWrapper:
            logging.error(e)
            return e.details()
         
-
+    def open_faucet(self, node_id, satoshis=10000, balance=2000):
+        try:
+            request = ln.OpenChannelRequest(
+                node_pubkey_string=node_id,
+                local_funding_amount=satoshis,
+                push_sat=balance
+            )
+            response = self.stub.OpenChannelSync(request)
+            logging.info(response)
+            if response.funding_txid_str:
+                return response.funding_txid_str
+            else:
+                return str(response) # I don't know why it's only returning funding_txid_bytes
+        except grpc.RpcError as e:
+           logging.error(e)
+           return e.details()
 
 def main():
     logging.basicConfig(level=logging.INFO)
@@ -114,7 +129,7 @@ def main():
 
     db = LightningDB(cfg.DB_PATH)
 
-    tweet = TweetClient(cfg.twitter, db, cfg.twitter_owner, lnclient)
+    tweet = FaucetClient(cfg.twitter, db, cfg.twitter_owner, lnclient)
     tweet.watch()
 
 if __name__ == "__main__":
