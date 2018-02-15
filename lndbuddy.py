@@ -119,6 +119,19 @@ class LightningWrapper:
            logging.error(e)
            return e.details()
 
+    def get_balance(self):
+        try:
+            request = ln.WalletBalanceRequest()
+            wallet = self.stub.WalletBalance(request)
+            logging.info(wallet)
+            request = ln.ChannelBalanceRequest()
+            channel = self.stub.ChannelBalance(request)
+            logging.info(channel)
+            return "WalletBalance: %s \nChannelBalance: %s" % (wallet.confirmed_balance, channel.balance)
+        except grpc.RpcError as e:
+           logging.error(e)
+           return e.details()
+
 def main():
     logging.basicConfig(level=logging.INFO)
 
