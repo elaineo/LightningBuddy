@@ -14,7 +14,7 @@ import logging
 import re
 
 HUMAN_COMMANDS = ['OPENFAUCET']
-BOT_COMMANDS = ['GETINFO', 'GETINVOICE', 'GETBALANCE']
+BOT_COMMANDS = ['GETINFO', 'GETINVOICE', 'GETBALANCE', 'INTRODUCE']
 
 class Parsers:
     @staticmethod
@@ -172,7 +172,9 @@ class FaucetClient:
             amount, description = Parsers.extract_payment(tweet)
             msg = self.lnrpc.get_invoice(amount, command.get('bot_name'), description)
         elif command.get('command') == "GETBALANCE":
-            msg = self.lnrpc.get_balance()    
+            msg = self.lnrpc.get_balance()
+        elif command.get('command') == "INTRODUCE":
+            msg = '@%s' % self.bot.get('screen_name')
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
