@@ -54,12 +54,13 @@ class Parsers:
     @staticmethod
     def extract_faucet(msg):
         amount = re.findall('\ \d+|$', msg)
-        if len(amount) < 1:
-            return None, None
-        elif len(amount) == 1:
-            return int(amount[0]), None
+        channel = None
+        bal = None
+        if len(amount) >= 1:
+            channel = int(amount[0]) if amount[0] else None
         else:
-            return int(amount[0]), int(amount[1])
+            bal = int(amount[1]) if amount[1] else None
+        return channel, bal
 
 class FaucetClient:
     def __init__(self, config, db, owner, lnrpc):
