@@ -186,7 +186,7 @@ class FaucetClient:
             self.db.peers.set_node(uid, pubkey, ip, port)
             sid = self._post(msg, command.get('last_sid'))
             # Fund channel (commitment amount, initial balance)
-            commitment, init_balance = Parsers.extract_faucet(orig) if orig else None, None
+            commitment, init_balance = Parsers.extract_faucet(orig) if orig else (None, None)
 
             msg = "%s\nDONE." % self.lnrpc.open_faucet(pubkey, commitment, init_balance)
             sid = self._post(msg, sid)
