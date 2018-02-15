@@ -166,6 +166,7 @@ class FaucetClient:
             return self._request_data(command, tweet)
 
     def _execute_bot_response(self, command, tweet):
+        status = 'complete'
         if command.get('command') == "GETINFO":
             msg = self.lnrpc.get_uri()
         elif command.get('command') == "GETINVOICE":
@@ -175,9 +176,10 @@ class FaucetClient:
             msg = self.lnrpc.get_balance()
         elif command.get('command') == "INTRODUCE":
             msg = '@%s' % self.bot.get('screen_name')
+            status = 'bot-ack'
         sid = self._post(msg, command.get('last_sid'))
         # update status
-        return self.db.commands.update_status(command.get('sid'), sid, 'complete')
+        return self.db.commands.update_status(command.get('sid'), sid, status)
 
     def _process_bot_response(self, command, tweet, orig=None):
         if command.get('command') == "OPENFAUCET":
@@ -220,6 +222,8 @@ class FaucetClient:
             command_full = self._get_full(command.get('sid'))
             # forward data to rpc
             return self._process_bot_response(command_full, text, orig.get('text'))
+        else:
+            return self._execute_bot_response(command, tweet)
 
     def watch(self):  
         """
