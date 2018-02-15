@@ -14,7 +14,7 @@ import logging
 import re
 
 HUMAN_COMMANDS = ['OPENFAUCET']
-BOT_COMMANDS = ['GETINFO', 'GETINVOICE']
+BOT_COMMANDS = ['GETINFO', 'GETINVOICE', 'GETBALANCE']
 
 class Parsers:
     @staticmethod
@@ -160,6 +160,8 @@ class FaucetClient:
         elif command.get('command') == "GETINVOICE":
             amount, description = Parsers.extract_payment(tweet)
             msg = self.lnrpc.get_invoice(amount, command.get('bot_name'), description)
+        elif command.get('command') == "GETBALANCE":
+            msg = self.lnrpc.get_balance()    
         sid = self._post(msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
@@ -174,10 +176,10 @@ class FaucetClient:
             self.db.peers.set_node(uid, pubkey, ip, port)
             sid = self._post(msg, command.get('last_sid'))
             # Fund channel (commitment amount, initial balance)
-            msg = self.lnrpc.open_faucet(pubkey)
-            sid = self._post(msg, command.get('last_sid'))
-            # update status
-            return self.db.commands.update_status(command.get('sid'), sid, 'complete')
+            msg = "%s\nDONE." % self.lnrpc.open_faucet(pubkey)
+            sid = self._post(msg, sid)
+        # update status
+        return self.db.commands.update_status(command.get('sid'), sid, 'complete')
 
     def _resume_command(self, command, tweet):
         """ Continue executing an existing command, either from bot-req or data-req
