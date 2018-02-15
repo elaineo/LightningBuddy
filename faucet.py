@@ -89,7 +89,7 @@ class FaucetClient:
 
     def _request_bot(self, command):
         reply_to = "@%s" % command.get('screen_name')
-        msg = reply_to + " Please introduce me to your bot."
+        msg = reply_to + " Please introduce me to your LightningBuddy. If you don't have a buddy, get one here: https://github.com/elaineo/LightningBuddy"
         sid = self._post(msg, command.get('last_sid'))
         return self.db.commands.update_status(command.get('sid'), sid, 'bot-req')
 
