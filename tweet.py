@@ -199,7 +199,7 @@ class TweetClient:
             uri = Parsers.extract_uri(tweet)
             pubkey, _, _ = Parsers.extract_info(uri)            
             msg = self.lnrpc._fundchannel(pubkey)
-        sid = self._post(msg, command.get('last_sid'))
+        sid = self._post("%s\nDONE." % msg, command.get('last_sid'))
         # update status
         return self.db.commands.update_status(command.get('sid'), sid, 'complete')
 
