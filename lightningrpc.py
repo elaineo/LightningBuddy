@@ -1,16 +1,13 @@
 from lightning import LightningRpc
-from tweet import TweetClient
-import config as cfg
-
-from db import LightningDB
-import os
-import json
 import random
-import logging
 
 class LightningWrapper(LightningRpc):
     """API for Lightning RPC client
     """
+    def __init__(self, config):
+        super( LightningWrapper, self ).__init__()
+        self.channel_amount = config.CHANNEL_AMOUNT
+
     def get_uri(self):
         try:
             info = self.getinfo()
@@ -42,28 +39,9 @@ class LightningWrapper(LightningRpc):
         except ValueError as e:
            logging.error(e)
 
-    def _fundchannel(self, node_id, satoshis=cfg.CHANNEL_AMOUNT):
+    def _fundchannel(self, node_id, satoshis=None):
         try:
-            tx = self.fundchannel(node_id, satoshis)
+            tx = self.fundchannel(node_id, satoshis or self.channel_amount)
             return tx['funding_txid']
         except ValueError as e:
            logging.error(e)
-        
-
-
-def main():
-    logging.basicConfig(level=logging.INFO)
-
-    ln_path = cfg.LN_PATH or os.path.join(os.getenv('HOME'), '.lightning')
-    rpc_path = os.path.join(ln_path, 'lightning-rpc')
-    logging.debug(rpc_path)
-
-    ln = LightningWrapper(rpc_path)
-
-    db = LightningDB(cfg.DB_PATH)
-
-    tweet = TweetClient(cfg.twitter, db, cfg.twitter_owner, ln)
-    tweet.watch()
-
-if __name__ == "__main__":
-    main()
