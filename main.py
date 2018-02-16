@@ -16,7 +16,7 @@ def main():
         rpc_path = os.path.join(ln_path, 'lightning-rpc')
         logging.debug(rpc_path)
 
-        ln = LightningWrapper(rpc_path)
+        ln = LightningWrapper(rpc_path,cfg)
     else:
         cert = open(os.path.expanduser(cfg.LND_CERT_PATH)).read()
         ln = LndWrapper(cert, cfg)
