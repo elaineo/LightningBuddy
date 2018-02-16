@@ -5,8 +5,8 @@ import random
 class LightningWrapper(LightningRpc):
     """API for Lightning RPC client
     """
-    def __init__(self, config):
-        super( LightningWrapper, self ).__init__()
+    def __init__(self, rpc, config):
+        super( LightningWrapper, self ).__init__(rpc, config)
         self.channel_amount = config.CHANNEL_AMOUNT
 
     def get_uri(self):
